@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ITMC Asset Recording System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <div>
+        <h1>ITMC Asset Recording System</h1>
+        <p>Estate Management Department</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="new" role="tab">New record</button>
+      <button class="tab" data-tab="records" role="tab">Records</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- NEW RECORD -->
+    <section id="view-new" class="view">
+      <div class="block">
+        <h2>Who is it for?</h2>
+        <div class="grid">
+          <div class="field"><label for="to">Assigned owner (To)</label><input id="to" placeholder="e.g. Mica Ella Verzosa" autocomplete="off"><small class="err" id="e-to"></small></div>
+          <div class="field"><label for="date">Date</label><input id="date" type="date"></div>
+          <div class="field"><label for="from">From</label><select id="from"><option value="">Select...</option></select><small class="err" id="e-from"></small></div>
+          <div class="field"><label for="project">Project</label><input id="project" placeholder="e.g. 1 set of desktop" autocomplete="off"></div>
+          <div class="field"><label for="by">Encoded by</label><select id="by"><option value="">Select...</option></select><small class="err" id="e-by"></small></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>What is being transmitted?</h2>
+        <p class="hint">Tick everything that applies.</p>
+        <div class="group"><h3>Document</h3><div class="chips" id="documents"></div></div>
+        <div class="group"><h3>Item</h3><div class="chips" id="items"></div></div>
+        <div class="group"><h3>Action</h3><div class="chips" id="actions"></div></div>
+      </div>
+
+      <div class="block">
+        <div class="row-between">
+          <div><h2>Assets</h2><p class="hint">One line per piece of equipment. These are saved to the Assets sheet.</p></div>
+          <div class="btns">
+            <button class="btn ghost" id="preset" type="button">Add desktop set</button>
+            <button class="btn ghost" id="addRow" type="button">Add item</button>
+          </div>
+        </div>
+        <div id="assets" class="assets"></div>
+        <p class="empty" id="assetsEmpty">No items yet. Add one, or use "Add desktop set" for monitor, keyboard, mouse, mousepad and CPU.</p>
+        <div class="field"><label for="remarks">Other remarks</label><textarea id="remarks" rows="2" placeholder="Optional"></textarea></div>
+      </div>
+    </section>
+
+    <!-- RECORDS -->
+    <section id="view-records" class="view" hidden>
+      <div class="block">
+        <div class="row-between">
+          <h2>Latest records</h2>
+          <input id="search" class="search" placeholder="Search owner, code or project">
+        </div>
+        <div class="tablewrap">
+          <table class="list">
+            <thead><tr><th>Code</th><th>Date</th><th>Assigned owner</th><th>Project</th><th></th></tr></thead>
+            <tbody id="recBody"></tbody>
+          </table>
+        </div>
+        <p class="empty" id="recEmpty" hidden>No records found.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bar" id="actionBar">
+    <span id="summary">0 items</span>
+    <button class="btn primary" id="submitBtn" type="button">Save and create PDF</button>
+  </footer>
+
+  <dialog id="done">
+    <h2>Record saved</h2>
+    <p>Your PDF is in Drive under <b id="d-folder"></b>.</p>
+    <p class="file" id="d-name"></p>
+    <p class="hint" id="d-photos"></p>
+    <div class="btns">
+      <a class="btn primary" id="d-open" target="_blank" rel="noopener">Open PDF to print</a>
+      <button class="btn ghost" id="d-new" type="button">Start a new record</button>
+    </div>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="script.js"></script>
+</body>
+</html>
