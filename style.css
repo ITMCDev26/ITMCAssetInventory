@@ -89,6 +89,9 @@
   #toast.show{opacity:1;transform:translateX(-50%)}
   #toast.bad{background:var(--danger)}
 
+  .editbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:#FFF4D6;border:1px solid #E5C766;border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:14px}
+  .savedlink{font-size:13px;color:var(--teal);font-weight:500}
+
   @media(max-width:700px){
     .grid{grid-template-columns:1fr}
     .asset{grid-template-columns:1fr 1fr}

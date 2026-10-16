@@ -2,7 +2,7 @@
  * 1) Deploy Code.gs as a Web app (see setup notes) and paste its URL below.
  * 2) Host index.html, style.css and script.js together (or just open index.html).
  */
-const API_URL = 'https://script.google.com/macros/s/AKfycbxU7d5qDj6EyqyciW6pPi2ixIfVtHWYOybyksw5-_qTRsj10JHYofcrRrVy5x7f4UYM/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw29HHANLFRP2-1ebDomnzTYa9A8Zb7AvLBBhOzZRTrIWGVAJ3KERaVDsfmC-3lBZTY/exec';
 
 function accessCode() {
   let c = localStorage.getItem('itmc_code');
@@ -11,12 +11,13 @@ function accessCode() {
 }
 
 /* Talks to Apps Script. POST body is plain text so the browser sends no CORS preflight. */
-async function api(action, record) {
+const POSTS = ['submit', 'update'];
+async function api(action, arg) {
   if (API_URL.indexOf('PASTE_') === 0) throw new Error('Set API_URL in script.js first.');
   const code = accessCode();
-  const res = record
-    ? await fetch(API_URL, { method: 'POST', body: JSON.stringify({ code: code, record: record }) })
-    : await fetch(API_URL + '?action=' + action + '&code=' + encodeURIComponent(code));
+  const res = POSTS.indexOf(action) > -1
+    ? await fetch(API_URL, { method: 'POST', body: JSON.stringify({ code: code, action: action, record: arg }) })
+    : await fetch(API_URL + '?action=' + action + '&code=' + encodeURIComponent(code) + (arg ? '&id=' + encodeURIComponent(arg) : ''));
   const j = await res.json();
   if (!j.ok) {
     if (j.error === 'Unauthorized') { localStorage.removeItem('itmc_code'); throw new Error('Wrong access code. Reload the page and try again.'); }
@@ -58,7 +59,7 @@ const DEFAULT_LISTS = {
 };
 
   const DESKTOP_SET = ['Monitor', 'Keyboard', 'Mouse', 'Mousepad', 'CPU'];
-  let LISTS = null, RECORDS = [];
+  let LISTS = null, RECORDS = [], EDIT = null;   // EDIT = code of the record being edited
 
   /* ---------- setup ---------- */
   function today() {
@@ -131,32 +132,38 @@ const DEFAULT_LISTS = {
     const wrap = document.createElement('div'); wrap.className = 'photo';
     const file = document.createElement('input'); file.type = 'file'; file.accept = 'image/*'; file.hidden = true;
     file.setAttribute('capture', 'environment');           // opens the rear camera on phones/tablets
-    const take = document.createElement('button'); take.type = 'button'; take.className = 'btn ghost small'; take.textContent = 'Take photo';
-    const clear = document.createElement('button'); clear.type = 'button'; clear.className = 'btn ghost small'; clear.textContent = 'Remove photo'; clear.hidden = true;
-    const img = document.createElement('img'); img.className = 'shot'; img.alt = 'Photo of asset'; img.hidden = true;
+    const take = document.createElement('button'); take.type = 'button'; take.className = 'btn ghost small';
+    const clear = document.createElement('button'); clear.type = 'button'; clear.className = 'btn ghost small'; clear.textContent = 'Remove photo';
+    const img = document.createElement('img'); img.className = 'shot'; img.alt = 'Photo of asset';
+    const view = document.createElement('a'); view.className = 'savedlink'; view.textContent = 'View saved photo'; view.target = '_blank'; view.rel = 'noopener'; view.href = card._link || '#';
+    const refresh = () => {
+      const has = !!(card._photo || card._link);
+      img.hidden = !card._photo; view.hidden = !(card._link && !card._photo); clear.hidden = !has;
+      take.textContent = has ? 'Retake photo' : 'Take photo';
+      updateSummary();
+    };
     take.addEventListener('click', () => file.click());
     file.addEventListener('change', async () => {
       const f = file.files[0]; if (!f) return;
-      try {
-        card._photo = await shrink(f); img.src = card._photo;
-        img.hidden = clear.hidden = false; take.textContent = 'Retake photo';
-      } catch (e) { toast('Could not read that photo. Try again.', true); }
-      file.value = ''; updateSummary();
+      try { card._photo = await shrink(f); img.src = card._photo; }
+      catch (e) { toast('Could not read that photo. Try again.', true); }
+      file.value = ''; refresh();
     });
-    clear.addEventListener('click', () => {
-      card._photo = ''; img.hidden = clear.hidden = true; img.removeAttribute('src'); take.textContent = 'Take photo'; updateSummary();
-    });
-    wrap.append(take, clear, img, file); return wrap;
+    clear.addEventListener('click', () => { card._photo = ''; card._link = ''; img.removeAttribute('src'); refresh(); });
+    wrap.append(take, clear, img, view, file); refresh(); return wrap;
   }
 
-  function addAsset(type) {
+  function addAsset(type, data) {
+    data = (data && typeof data === 'object') ? data : {};
     const card = document.createElement('div'); card.className = 'asset';
+    card._link = data.photoLink || '';
     FIELDS.forEach(([key, label, cls, kind]) => {
       const f = document.createElement('div'); f.className = 'field ' + cls;
       const l = document.createElement('label'); l.textContent = label;
       const i = document.createElement('input'); i.type = kind; i.dataset.k = key; i.autocomplete = 'off';
-      if (key === 'type') { i.setAttribute('list', 'typeList'); i.value = type || ''; }
-      if (key === 'qty') { i.value = 1; i.min = 1; }
+      if (key === 'type') { i.setAttribute('list', 'typeList'); i.value = (typeof type === 'string' ? type : '') || data.type || ''; }
+      else if (key === 'qty') { i.value = data.qty || 1; i.min = 1; }
+      else i.value = data[key] == null ? '' : data[key];
       i.addEventListener('input', updateSummary);
       f.append(l, i); card.appendChild(f);
     });
@@ -166,7 +173,7 @@ const DEFAULT_LISTS = {
     card.appendChild(del);
     $('assets').appendChild(card);
     renderAssets();
-    if (!type) card.querySelector('input').focus();
+    if (!type && !data.type) card.querySelector('input').focus();
   }
 
   function renderAssets() {
@@ -177,14 +184,14 @@ const DEFAULT_LISTS = {
   function readAssets() {
     return [...$('assets').children].map(c => {
       const o = {}; c.querySelectorAll('input[data-k]').forEach(i => o[i.dataset.k] = i.value.trim());
-      o.photo = c._photo || ''; return o;
-    }).filter(a => a.type || a.brand || a.model || a.serial || a.tag || a.photo);
+      o.photo = c._photo || ''; o.photoLink = c._link || ''; return o;
+    }).filter(a => a.type || a.brand || a.model || a.serial || a.tag || a.photo || a.photoLink);
   }
 
   function checked(name) { return [...document.querySelectorAll('input[name=' + name + ']:checked')].map(e => e.value); }
 
   function updateSummary() {
-    const list = readAssets(), n = list.length, p = list.filter(a => a.photo).length;
+    const list = readAssets(), n = list.length, p = list.filter(a => a.photo || a.photoLink).length;
     $('summary').textContent = n + (n === 1 ? ' item' : ' items') + ' to record' + (p ? ', ' + p + (p === 1 ? ' photo' : ' photos') : '');
   }
 
@@ -209,13 +216,17 @@ const DEFAULT_LISTS = {
     };
     const btn = $('submitBtn'); btn.disabled = true; btn.textContent = d.assets.some(a => a.photo) ? 'Uploading photos and creating PDF...' : 'Creating PDF...';
     localStorage.setItem('itmc_by', d.encodedBy);
-    api('submit', d).then(r => {
-        btn.disabled = false; btn.textContent = 'Save and create PDF';
+    if (EDIT) d.code = EDIT;
+    const wasEdit = !!EDIT;
+    api(wasEdit ? 'update' : 'submit', d).then(r => {
+        btn.disabled = false; btn.textContent = btnLabel();
+        $('d-title').textContent = wasEdit ? 'Record updated' : 'Record saved';
         $('d-folder').textContent = r.folder; $('d-name').textContent = r.name; $('d-open').href = r.url;
         $('d-photos').textContent = r.photos ? r.photos + (r.photos === 1 ? ' photo' : ' photos') + ' saved in the Photos folder and linked in the Assets sheet.' : '';
         $('done').showModal();
+        if (r.pages > 1) toast('Warning: too many items to fit on one page. Please check the PDF.', true);
       }).catch(e => {
-        btn.disabled = false; btn.textContent = 'Save and create PDF';
+        btn.disabled = false; btn.textContent = btnLabel();
         toast('Not saved: ' + e.message, true);
       });
   }
@@ -239,7 +250,9 @@ const DEFAULT_LISTS = {
       [r.code, r.date, r.owner, r.project].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
       const td = document.createElement('td'), a = document.createElement('a');
       a.href = r.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open PDF';
-      td.appendChild(a); tr.appendChild(td); body.appendChild(tr);
+      const e = document.createElement('button'); e.type = 'button'; e.className = 'btn ghost small'; e.textContent = 'Edit';
+      e.addEventListener('click', () => startEdit(r.code));
+      td.append(a, document.createTextNode('  '), e); tr.appendChild(td); body.appendChild(tr);
     });
   }
   function loadRecords() {
@@ -249,17 +262,58 @@ const DEFAULT_LISTS = {
       .catch(e => { $('recEmpty').textContent = 'No records found.'; toast('Could not load records: ' + e.message, true); });
   }
 
-  /* ---------- events ---------- */
-  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
-    const rec = t.dataset.tab === 'records';
+  /* ---------- edit mode ---------- */
+  function btnLabel() { return EDIT ? 'Save changes and update PDF' : 'Save and create PDF'; }
+
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name));
+    const rec = name === 'records';
     $('view-new').hidden = rec; $('view-records').hidden = !rec; $('actionBar').hidden = rec;
     if (rec) loadRecords();
+  }
+
+  function setSelect(id, val) {
+    const s = $(id);
+    if (val && ![...s.options].some(o => o.value === val)) { const o = document.createElement('option'); o.value = o.textContent = val; s.appendChild(o); }
+    s.value = val || '';
+  }
+  function setChecks(name, arr) { document.querySelectorAll('input[name=' + name + ']').forEach(i => i.checked = arr.indexOf(i.value) > -1); }
+
+  function startEdit(code) {
+    toast('Loading ' + code + '...');
+    api('record', code).then(r => {
+      resetForm();
+      EDIT = code;
+      $('to').value = r.to; $('date').value = r.date; $('project').value = r.project; $('remarks').value = r.remarks;
+      setSelect('from', r.from);
+      setChecks('documents', r.documents); setChecks('items', r.items); setChecks('actions', r.actions);
+      r.assets.forEach(a => addAsset(a.type, a));
+      $('editText').textContent = 'Editing ' + code + '. Saving will regenerate the PDF and replace the old one.';
+      $('editBar').hidden = false;
+      document.querySelector('label[for=by]').textContent = 'Edited by';
+      $('submitBtn').textContent = btnLabel();
+      showTab('new'); updateSummary();
+      window.scrollTo({ top: 0 });
+    }).catch(e => toast('Could not open record: ' + e.message, true));
+  }
+
+  function exitEdit() {
+    EDIT = null; $('editBar').hidden = true;
+    document.querySelector('label[for=by]').textContent = 'Encoded by';
+    $('submitBtn').textContent = btnLabel();
+  }
+
+  /* ---------- events ---------- */
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    if (t.dataset.tab === 'new' && EDIT) { exitEdit(); resetForm(); }   // "New record" always starts blank
+    showTab(t.dataset.tab);
   }));
+  $('editCancel').addEventListener('click', () => { exitEdit(); resetForm(); showTab('records'); });
+  $('d-back').addEventListener('click', () => { $('done').close(); exitEdit(); resetForm(); showTab('records'); });
   $('addRow').addEventListener('click', () => addAsset());
   $('preset').addEventListener('click', () => { DESKTOP_SET.forEach(addAsset); toast('Desktop set added. Fill in brand and serial numbers.'); });
   $('submitBtn').addEventListener('click', submit);
-  $('d-new').addEventListener('click', () => { $('done').close(); resetForm(); });
+  $('d-new').addEventListener('click', () => { $('done').close(); exitEdit(); resetForm(); });
   $('search').addEventListener('input', renderRecords);
   ['to', 'from', 'by'].forEach(id => $(id).addEventListener('input', () => { $(id).classList.remove('invalid'); $('e-' + id).textContent = ''; }));
 

@@ -26,6 +26,7 @@
   <main>
     <!-- NEW RECORD -->
     <section id="view-new" class="view">
+      <div class="editbar" id="editBar" hidden><span id="editText"></span><button class="btn ghost small" id="editCancel" type="button">Cancel editing</button></div>
       <div class="block">
         <h2>Who is it for?</h2>
         <div class="grid">
@@ -83,12 +84,13 @@
   </footer>
 
   <dialog id="done">
-    <h2>Record saved</h2>
+    <h2 id="d-title">Record saved</h2>
     <p>Your PDF is in Drive under <b id="d-folder"></b>.</p>
     <p class="file" id="d-name"></p>
     <p class="hint" id="d-photos"></p>
     <div class="btns">
       <a class="btn primary" id="d-open" target="_blank" rel="noopener">Open PDF to print</a>
+      <button class="btn ghost" id="d-back" type="button">Back to records</button>
       <button class="btn ghost" id="d-new" type="button">Start a new record</button>
     </div>
   </dialog>
