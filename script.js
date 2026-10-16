@@ -2,7 +2,7 @@
  * 1) Deploy Code.gs as a Web app (see setup notes) and paste its URL below.
  * 2) Host index.html, style.css and script.js together (or just open index.html).
  */
-const API_URL = 'https://script.google.com/macros/s/AKfycbw29HHANLFRP2-1ebDomnzTYa9A8Zb7AvLBBhOzZRTrIWGVAJ3KERaVDsfmC-3lBZTY/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzc8fVC3X44ZrG519FDeXABDmec7GyCAuPgAbr5r4bE4f0LAQCBPmZEa9M9SbvhKCiJ/exec';
 
 function accessCode() {
   let c = localStorage.getItem('itmc_code');
@@ -221,7 +221,7 @@ const DEFAULT_LISTS = {
     api(wasEdit ? 'update' : 'submit', d).then(r => {
         btn.disabled = false; btn.textContent = btnLabel();
         $('d-title').textContent = wasEdit ? 'Record updated' : 'Record saved';
-        $('d-folder').textContent = r.folder; $('d-name').textContent = r.name; $('d-open').href = r.url;
+        $('d-folder').textContent = r.folder; $('d-name').textContent = r.name; $('d-open').href = r.url; $('d-folder-open').href = r.folderUrl || '#';
         $('d-photos').textContent = r.photos ? r.photos + (r.photos === 1 ? ' photo' : ' photos') + ' saved in the Photos folder and linked in the Assets sheet.' : '';
         $('done').showModal();
         if (r.pages > 1) toast('Warning: too many items to fit on one page. Please check the PDF.', true);
