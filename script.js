@@ -2,7 +2,7 @@
  * 1) Deploy Code.gs as a Web app (see setup notes) and paste its URL below.
  * 2) Host index.html, style.css and script.js together (or just open index.html).
  */
-const API_URL = 'https://script.google.com/macros/s/AKfycbxK0Kvyu2UyMjzsuuOajYq8HxJOVMjAGyW8DoRnWvpBCPv8QVpDnPpq0eyB5GD1mgw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxU7d5qDj6EyqyciW6pPi2ixIfVtHWYOybyksw5-_qTRsj10JHYofcrRrVy5x7f4UYM/exec';
 
 function accessCode() {
   let c = localStorage.getItem('itmc_code');
