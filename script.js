@@ -55,10 +55,13 @@ const DEFAULT_LISTS = {
     'Uptown Bonifacio Estate Association',
     'Westside City Estate Association'],
   encoders: ['Mc Genrev Egar', 'Jenelyn Relano'],
-  assetTypes: ['Monitor', 'Keyboard', 'Mouse', 'Mousepad', 'CPU', 'Laptop', 'Charger', 'Printer', 'UPS', 'Phone']
+  assetTypes: ['Monitor', 'Keyboard', 'Mouse', 'Mousepad', 'CPU', 'Bag', 'Laptop', 'Charger', 'Printer', 'UPS', 'Phone']
 };
 
   const DESKTOP_SET = ['Monitor', 'Keyboard', 'Mouse', 'Mousepad', 'CPU'];
+  let LISTS = null, RECORDS = [], EDIT = null;   // EDIT = code of the record being edited
+
+    const DESKTOP_SET = ['Laptop', 'Charger', 'Mouse', 'Bag'];
   let LISTS = null, RECORDS = [], EDIT = null;   // EDIT = code of the record being edited
 
   /* ---------- setup ---------- */
