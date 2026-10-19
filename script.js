@@ -61,7 +61,7 @@ const DEFAULT_LISTS = {
   const DESKTOP_SET = ['Monitor', 'Keyboard', 'Mouse', 'Mousepad', 'CPU'];
   let LISTS = null, RECORDS = [], EDIT = null;   // EDIT = code of the record being edited
 
-    const DESKTOP_SET = ['Laptop', 'Charger', 'Mouse', 'Bag'];
+  const LAPTOP_SET = ['Laptop', 'Charger', 'Mouse', 'Bag'];
   let LISTS = null, RECORDS = [], EDIT = null;   // EDIT = code of the record being edited
 
   /* ---------- setup ---------- */
@@ -315,6 +315,7 @@ const DEFAULT_LISTS = {
   $('d-back').addEventListener('click', () => { $('done').close(); exitEdit(); resetForm(); showTab('records'); });
   $('addRow').addEventListener('click', () => addAsset());
   $('preset').addEventListener('click', () => { DESKTOP_SET.forEach(addAsset); toast('Desktop set added. Fill in brand and serial numbers.'); });
+  $('preset-laptop').addEventListener('click', () => { LAPTOP_SET.forEach(addAsset); toast('Laptop set added. Fill in brand and serial numbers.'); });
   $('submitBtn').addEventListener('click', submit);
   $('d-new').addEventListener('click', () => { $('done').close(); exitEdit(); resetForm(); });
   $('search').addEventListener('input', renderRecords);
