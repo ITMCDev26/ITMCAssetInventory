@@ -2,7 +2,7 @@
  * 1) Deploy Code.gs as a Web app (see setup notes) and paste its URL below.
  * 2) Host index.html, style.css and script.js together (or just open index.html).
  */
-const API_URL = 'https://script.google.com/macros/s/AKfycbzc8fVC3X44ZrG519FDeXABDmec7GyCAuPgAbr5r4bE4f0LAQCBPmZEa9M9SbvhKCiJ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxLCBmT_GlckEtSJTl_i2ziYcLv-tBZJbqbZV2Qli85R85L_VOJg9Gun_6-S3kMX9tR/exec';
 
 function accessCode() {
   let c = localStorage.getItem('itmc_code');
@@ -59,8 +59,6 @@ const DEFAULT_LISTS = {
 };
 
   const DESKTOP_SET = ['Monitor', 'Keyboard', 'Mouse', 'Mousepad', 'CPU'];
-  let LISTS = null, RECORDS = [], EDIT = null;   // EDIT = code of the record being edited
-
   const LAPTOP_SET = ['Laptop', 'Charger', 'Mouse', 'Bag'];
   let LISTS = null, RECORDS = [], EDIT = null;   // EDIT = code of the record being edited
 
@@ -74,15 +72,20 @@ const DEFAULT_LISTS = {
     clearTimeout(toast.t); toast.t = setTimeout(() => t.className = '', 3500);
   }
 
+  function addChip(id, txt, on) {
+    const box = [...document.querySelectorAll('input[name=' + id + ']')].find(x => x.value.toLowerCase() === txt.toLowerCase());
+    if (box) { if (on) box.checked = true; return box; }      // already there, just tick it
+    const l = document.createElement('label'); l.className = 'chip';
+    const i = document.createElement('input'); i.type = 'checkbox'; i.name = id; i.value = txt; i.checked = !!on;
+    const s = document.createElement('span'); s.textContent = txt;
+    i.addEventListener('change', updateSummary);
+    l.append(i, s); $(id).appendChild(l);
+    return i;
+  }
+
   function chips(id, list) {
     $(id).innerHTML = '';
-    list.forEach(txt => {
-      const l = document.createElement('label'); l.className = 'chip';
-      const i = document.createElement('input'); i.type = 'checkbox'; i.name = id; i.value = txt;
-      const s = document.createElement('span'); s.textContent = txt;
-      i.addEventListener('change', updateSummary);
-      l.append(i, s); $(id).appendChild(l);
-    });
+    list.forEach(txt => addChip(id, txt, false));
   }
 
   function fillSelect(id, arr) {
@@ -166,7 +169,7 @@ const DEFAULT_LISTS = {
       const i = document.createElement('input'); i.type = kind; i.dataset.k = key; i.autocomplete = 'off';
       if (key === 'type') { i.setAttribute('list', 'typeList'); i.value = (typeof type === 'string' ? type : '') || data.type || ''; }
       else if (key === 'qty') { i.value = data.qty || 1; i.min = 1; }
-      else i.value = data[key] == null ? '' : data[key];
+      else i.value = (data[key] == null || data[key] === '-') ? '' : data[key];
       i.addEventListener('input', updateSummary);
       f.append(l, i); card.appendChild(f);
     });
@@ -239,6 +242,7 @@ const DEFAULT_LISTS = {
     $('e-to').textContent = $('e-from').textContent = '';
     $('date').value = today();
     document.querySelectorAll('.chip input').forEach(i => i.checked = false);
+    $('customItem').value = '';
     $('assets').innerHTML = ''; renderAssets();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -280,7 +284,11 @@ const DEFAULT_LISTS = {
     if (val && ![...s.options].some(o => o.value === val)) { const o = document.createElement('option'); o.value = o.textContent = val; s.appendChild(o); }
     s.value = val || '';
   }
-  function setChecks(name, arr) { document.querySelectorAll('input[name=' + name + ']').forEach(i => i.checked = arr.indexOf(i.value) > -1); }
+  function setChecks(name, arr) {
+    arr = arr || [];
+    arr.forEach(v => addChip(name, v, false));                // recreate custom entries saved earlier
+    document.querySelectorAll('input[name=' + name + ']').forEach(i => i.checked = arr.indexOf(i.value) > -1);
+  }
 
   function startEdit(code) {
     toast('Loading ' + code + '...');
@@ -316,6 +324,12 @@ const DEFAULT_LISTS = {
   $('addRow').addEventListener('click', () => addAsset());
   $('preset').addEventListener('click', () => { DESKTOP_SET.forEach(addAsset); toast('Desktop set added. Fill in brand and serial numbers.'); });
   $('preset-laptop').addEventListener('click', () => { LAPTOP_SET.forEach(addAsset); toast('Laptop set added. Fill in brand and serial numbers.'); });
+  function addCustomItem() {
+    const v = $('customItem').value.trim(); if (!v) return;
+    addChip('items', v, true); $('customItem').value = ''; updateSummary();
+  }
+  $('addCustomItem').addEventListener('click', addCustomItem);
+  $('customItem').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCustomItem(); } });
   $('submitBtn').addEventListener('click', submit);
   $('d-new').addEventListener('click', () => { $('done').close(); exitEdit(); resetForm(); });
   $('search').addEventListener('input', renderRecords);
