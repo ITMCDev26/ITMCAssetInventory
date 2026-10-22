@@ -2,7 +2,7 @@
  * 1) Deploy Code.gs as a Web app (see setup notes) and paste its URL below.
  * 2) Host index.html, style.css and script.js together (or just open index.html).
  */
-const API_URL = 'https://script.google.com/macros/s/AKfycbxLCBmT_GlckEtSJTl_i2ziYcLv-tBZJbqbZV2Qli85R85L_VOJg9Gun_6-S3kMX9tR/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzd7DHTKCcByWf2ta6Y-fmFD3i6EbtcRN3AUme_nTC6ZUTaMZmY5R8Xn4vDiUaok5_J/exec';
 
 function accessCode() {
   let c = localStorage.getItem('itmc_code');
@@ -11,7 +11,7 @@ function accessCode() {
 }
 
 /* Talks to Apps Script. POST body is plain text so the browser sends no CORS preflight. */
-const POSTS = ['submit', 'update'];
+const POSTS = ['submit', 'update', 'lap_submit', 'lap_update'];
 async function api(action, arg) {
   if (API_URL.indexOf('PASTE_') === 0) throw new Error('Set API_URL in script.js first.');
   const code = accessCode();
@@ -97,12 +97,13 @@ const DEFAULT_LISTS = {
   function applyLists(L) {
     L = Object.assign({}, DEFAULT_LISTS, L); LISTS = L;
     ['documents', 'items', 'actions'].forEach(k => chips(k, L[k]));
-    fillSelect('from', L.companies); fillSelect('by', L.encoders);
+    fillSelect('from', L.companies); fillSelect('by', L.encoders); fillSelect('l-by', L.encoders);
     const old = $('typeList'); if (old) old.remove();
     const dl = document.createElement('datalist'); dl.id = 'typeList';
     L.assetTypes.forEach(t => { const o = document.createElement('option'); o.value = t; dl.appendChild(o); });
     document.body.appendChild(dl);
     $('by').value = localStorage.getItem('itmc_by') || $('by').value;
+    $('l-by').value = localStorage.getItem('itmc_by') || $('l-by').value;
   }
 
   function init() {
@@ -274,9 +275,10 @@ const DEFAULT_LISTS = {
 
   function showTab(name) {
     document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name));
-    const rec = name === 'records';
-    $('view-new').hidden = rec; $('view-records').hidden = !rec; $('actionBar').hidden = rec;
-    if (rec) loadRecords();
+    $('view-new').hidden = name !== 'new'; $('view-records').hidden = name !== 'records'; $('view-laptop').hidden = name !== 'laptop';
+    $('actionBar').hidden = name !== 'new';
+    if (name === 'records') loadRecords();
+    if (name === 'laptop') { loadLaptops(); drawLabel(); }
   }
 
   function setSelect(id, val) {
@@ -334,5 +336,119 @@ const DEFAULT_LISTS = {
   $('d-new').addEventListener('click', () => { $('done').close(); exitEdit(); resetForm(); });
   $('search').addEventListener('input', renderRecords);
   ['to', 'from', 'by'].forEach(id => $(id).addEventListener('input', () => { $(id).classList.remove('invalid'); $('e-' + id).textContent = ''; }));
+
+  /* ---------- laptop endorsement ---------- */
+  const TAGS = {
+    'For Turn Over': { cls: 't-turn', badge: 'FOR TURN OVER', pill: '' },
+    'For Safe Keep': { cls: 't-safe', badge: 'FOR SAFE KEEP', pill: 'safe' },
+    'Defective': { cls: 't-def', badge: 'DEFECTIVE', pill: 'def' }
+  };
+  const LAPSVG = '<svg viewBox="0 0 64 44"><path d="M10 2h44a3 3 0 013 3v28H7V5a3 3 0 013-3zm3 5v22h38V7z" fill-rule="evenodd"/><path d="M2 36h60v2a4 4 0 01-4 4H6a4 4 0 01-4-4z"/></svg>';
+  let LTAG = 'For Turn Over', LEDIT = null, LPHOTO = '', LLINK = '';
+  const lv = k => $('l-' + k).value.trim();
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function niceDate(v) { return v ? new Date(v + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; }
+
+  function labelHTML() {
+    const t = TAGS[LTAG], row = (l, v) => '<div class="lrow"><b>' + l + '</b><span>' + esc(v) + '</span></div>';
+    return '<div class="label ' + t.cls + '"><div class="lhead"><div class="lbrand"><span class="lmark"></span><span class="lname">MEGAWORLD</span></div>' +
+      '<div class="ltown">INTEGRATED TOWN<br>MANAGEMENT CORPORATION</div><div class="llap">' + LAPSVG + '<span>LAPTOP<br>MANAGEMENT</span></div></div>' +
+      '<div class="lbody">' + row('Serial Number:', lv('serial')) + row('Brand &amp; Model:', lv('brand')) + row('Accounted to:', lv('to')) + row('Returned by:', lv('ret')) +
+      (LTAG === 'For Turn Over' ? row('For turn over to:', lv('turn')) : '') +
+      '<div class="ldet"><div class="ldh"><b>DETAILS:</b><em>' + t.badge + '</em></div><div class="ldc">' +
+      '<div><small>Date:</small><span>' + esc(niceDate($('l-date').value)) + '</span></div>' +
+      '<div><small>Action:</small><span>' + esc(lv('action')) + '</span></div>' +
+      '<div><small>Received by:</small><span>' + esc(lv('recv')) + '</span></div></div></div></div></div>';
+  }
+  function drawLabel() { $('labelPreview').innerHTML = labelHTML(); }
+
+  function setTag(tag) {
+    LTAG = tag;
+    document.querySelectorAll('.tagbtn').forEach(b => b.classList.toggle('active', b.dataset.tag === tag));
+    $('l-turn-wrap').hidden = tag !== 'For Turn Over';
+    drawLabel();
+  }
+
+  function lapPhotoUI() {
+    const has = !!(LPHOTO || LLINK);
+    $('l-img').hidden = !LPHOTO; $('l-view').hidden = !(LLINK && !LPHOTO); $('l-view').href = LLINK || '#';
+    $('l-clear').hidden = !has; $('l-take').textContent = has ? 'Retake photo' : 'Take photo';
+  }
+
+  function lapReset() {
+    ['serial', 'brand', 'to', 'ret', 'turn', 'action', 'recv', 'remarks'].forEach(k => { $('l-' + k).value = ''; $('l-' + k).classList.remove('invalid'); });
+    ['serial', 'to', 'turn', 'by'].forEach(k => $('e-l-' + k).textContent = '');
+    $('l-date').value = today(); LPHOTO = ''; LLINK = ''; LEDIT = null; $('lapEditBar').hidden = true;
+    $('l-img').removeAttribute('src'); lapPhotoUI(); setTag('For Turn Over');
+  }
+
+  function lapValidate() {
+    let ok = true;
+    const need = [['serial', 'Enter the serial number.'], ['to', 'Enter who the laptop is accounted to.'], ['by', 'Select who is encoding.']];
+    if (LTAG === 'For Turn Over') need.push(['turn', 'Enter who it will be turned over to.']);
+    need.forEach(([k, msg]) => {
+      const bad = !lv(k); $('l-' + k).classList.toggle('invalid', bad); $('e-l-' + k).textContent = bad ? msg : '';
+      if (bad && ok) $('l-' + k).focus(); if (bad) ok = false;
+    });
+    return ok;
+  }
+
+  function lapSave() {
+    if (!lapValidate()) return;
+    const d = { tag: LTAG, serial: lv('serial'), model: lv('brand'), to: lv('to'), returnedBy: lv('ret'), turnTo: LTAG === 'For Turn Over' ? lv('turn') : '',
+      date: $('l-date').value || today(), action: lv('action'), receivedBy: lv('recv'), remarks: lv('remarks'), encodedBy: lv('by'),
+      photo: LPHOTO, photoLink: LLINK };
+    if (LEDIT) d.code = LEDIT;
+    const btn = $('l-save'), was = !!LEDIT; btn.disabled = true; btn.textContent = 'Saving...';
+    localStorage.setItem('itmc_by', d.encodedBy);
+    api(was ? 'lap_update' : 'lap_submit', d).then(r => {
+      btn.disabled = false; btn.textContent = 'Save to sheet';
+      LEDIT = r.code; LLINK = r.photoLink || ''; LPHOTO = ''; lapPhotoUI();
+      $('lapEditText').textContent = (was ? 'Updated ' : 'Saved as ') + r.code + '. Saving again will update this entry.'; $('lapEditBar').hidden = false;
+      toast(was ? 'Record updated.' : 'Saved to the Laptops sheet.'); loadLaptops();
+    }).catch(e => { btn.disabled = false; btn.textContent = 'Save to sheet'; toast('Not saved: ' + e.message, true); });
+  }
+
+  function renderLaptops(rows) {
+    const body = $('lapBody'); body.innerHTML = ''; $('lapEmpty').hidden = rows.length > 0;
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      [r.code, r.date].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+      const tg = document.createElement('td'), pill = document.createElement('span');
+      pill.className = 'tag-pill ' + ((TAGS[r.tag] || {}).pill || ''); pill.textContent = r.tag; tg.appendChild(pill); tr.appendChild(tg);
+      [r.serial, r.owner].forEach(v => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+      const td = document.createElement('td');
+      if (r.photo) { const a = document.createElement('a'); a.href = r.photo; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Photo'; td.append(a, document.createTextNode('  ')); }
+      const e = document.createElement('button'); e.type = 'button'; e.className = 'btn ghost small'; e.textContent = 'Edit';
+      e.addEventListener('click', () => lapEdit(r.code)); td.appendChild(e); tr.appendChild(td); body.appendChild(tr);
+    });
+  }
+  function loadLaptops() { api('lap_list').then(renderLaptops).catch(e => toast('Could not load laptop records: ' + e.message, true)); }
+
+  function lapEdit(code) {
+    toast('Loading ' + code + '...');
+    api('lap_get', code).then(r => {
+      lapReset(); LEDIT = code; setSelect('l-by', r.encodedBy);
+      $('l-serial').value = r.serial; $('l-brand').value = r.model; $('l-to').value = r.to; $('l-ret').value = r.returnedBy; $('l-turn').value = r.turnTo;
+      $('l-date').value = r.date; $('l-action').value = r.action; $('l-recv').value = r.receivedBy; $('l-remarks').value = r.remarks;
+      LLINK = r.photoLink || ''; lapPhotoUI(); setTag(r.tag);
+      $('lapEditText').textContent = 'Editing ' + code + '. Saving will update the same row in the sheet.'; $('lapEditBar').hidden = false;
+      window.scrollTo({ top: 0 });
+    }).catch(e => toast('Could not open record: ' + e.message, true));
+  }
+
+  document.querySelectorAll('.tagbtn').forEach(b => b.addEventListener('click', () => setTag(b.dataset.tag)));
+  ['serial', 'brand', 'to', 'ret', 'turn', 'date', 'action', 'recv'].forEach(k => $('l-' + k).addEventListener('input', () => { $('l-' + k).classList.remove('invalid'); if ($('e-l-' + k)) $('e-l-' + k).textContent = ''; drawLabel(); }));
+  $('l-take').addEventListener('click', () => $('l-file').click());
+  $('l-file').addEventListener('change', async () => {
+    const f = $('l-file').files[0]; if (!f) return;
+    try { LPHOTO = await shrink(f); $('l-img').src = LPHOTO; } catch (e) { toast('Could not read that photo. Try again.', true); }
+    $('l-file').value = ''; lapPhotoUI();
+  });
+  $('l-clear').addEventListener('click', () => { LPHOTO = ''; LLINK = ''; $('l-img').removeAttribute('src'); lapPhotoUI(); });
+  $('l-save').addEventListener('click', lapSave);
+  $('l-print').addEventListener('click', () => { $('printArea').innerHTML = labelHTML(); window.print(); });
+  $('lapNew').addEventListener('click', lapReset);
+  $('l-date').value = today(); setTag('For Turn Over');
 
   init();

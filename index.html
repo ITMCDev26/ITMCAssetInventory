@@ -20,6 +20,7 @@
     <nav class="tabs" role="tablist">
       <button class="tab active" data-tab="new" role="tab">New record</button>
       <button class="tab" data-tab="records" role="tab">Records</button>
+      <button class="tab" data-tab="laptop" role="tab">Laptop endorsement</button>
     </nav>
   </header>
 
@@ -62,6 +63,60 @@
       </div>
     </section>
 
+    <!-- LAPTOP ENDORSEMENT -->
+    <section id="view-laptop" class="view" hidden>
+      <div class="editbar" id="lapEditBar" hidden><span id="lapEditText"></span><button class="btn ghost small" id="lapNew" type="button">Start new entry</button></div>
+      <div class="block">
+        <h2>Laptop tag</h2>
+        <p class="hint">Choose the tag. The label preview below matches the sticker.</p>
+        <div class="tags" id="lapTags">
+          <button type="button" class="tagbtn turn active" data-tag="For Turn Over">For turn over</button>
+          <button type="button" class="tagbtn safe" data-tag="For Safe Keep">For safe keep</button>
+          <button type="button" class="tagbtn def" data-tag="Defective">Defective</button>
+        </div>
+      </div>
+      <div class="block">
+        <h2>Laptop details</h2>
+        <div class="grid">
+          <div class="field"><label for="l-serial">Serial number</label><input id="l-serial" autocomplete="off"><small class="err" id="e-l-serial"></small></div>
+          <div class="field"><label for="l-brand">Brand &amp; model</label><input id="l-brand" placeholder="e.g. Lenovo ThinkPad E14" autocomplete="off"></div>
+          <div class="field"><label for="l-to">Accounted to</label><input id="l-to" autocomplete="off"><small class="err" id="e-l-to"></small></div>
+          <div class="field"><label for="l-ret">Returned by</label><input id="l-ret" autocomplete="off"></div>
+          <div class="field" id="l-turn-wrap"><label for="l-turn">For turn over to</label><input id="l-turn" autocomplete="off"><small class="err" id="e-l-turn"></small></div>
+        </div>
+      </div>
+      <div class="block">
+        <h2>Details</h2>
+        <div class="grid">
+          <div class="field"><label for="l-date">Date</label><input id="l-date" type="date"></div>
+          <div class="field"><label for="l-action">Action</label><input id="l-action" list="actionList" placeholder="e.g. Returned to IT" autocomplete="off"></div>
+          <div class="field"><label for="l-recv">Received by</label><input id="l-recv" autocomplete="off"></div>
+          <div class="field"><label for="l-by">Encoded by</label><select id="l-by"><option value="">Select...</option></select><small class="err" id="e-l-by"></small></div>
+          <div class="field" style="grid-column:1/-1"><label for="l-remarks">Remarks</label><textarea id="l-remarks" rows="2" placeholder="Optional, e.g. cracked screen, missing charger"></textarea></div>
+        </div>
+        <datalist id="actionList"><option>Returned to ITMC</option><option>For repair</option><option>For turn over to new user</option><option>Stored in IT room</option><option>For disposal</option></datalist>
+        <div class="photo" style="margin-top:14px">
+          <button class="btn ghost small" id="l-take" type="button">Take photo</button>
+          <button class="btn ghost small" id="l-clear" type="button" hidden>Remove photo</button>
+          <img class="shot" id="l-img" alt="Laptop photo" hidden>
+          <a class="savedlink" id="l-view" target="_blank" rel="noopener" hidden>View saved photo</a>
+          <input id="l-file" type="file" accept="image/*" capture="environment" hidden>
+        </div>
+      </div>
+      <div class="block">
+        <div class="row-between"><h2>Label preview</h2>
+          <div class="btns"><button class="btn ghost" id="l-print" type="button">Print label</button><button class="btn primary" id="l-save" type="button">Save to sheet</button></div></div>
+        <div id="labelPreview"></div>
+      </div>
+      <div class="block">
+        <h2>Latest laptop endorsements</h2>
+        <div class="tablewrap"><table class="list">
+          <thead><tr><th>Code</th><th>Date</th><th>Tag</th><th>Serial</th><th>Accounted to</th><th></th></tr></thead>
+          <tbody id="lapBody"></tbody></table></div>
+        <p class="empty" id="lapEmpty" hidden>No laptop records yet.</p>
+      </div>
+    </section>
+
     <!-- RECORDS -->
     <section id="view-records" class="view" hidden>
       <div class="block">
@@ -98,6 +153,7 @@
     </div>
   </dialog>
 
+  <div id="printArea"></div>
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="script.js"></script>
 </body>
